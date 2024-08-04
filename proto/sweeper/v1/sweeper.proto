@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package sweeper.v1;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/nightmarlin/sweeper/gen/sweeper/v1;sweeperv1";
+
+enum UnrevealedCellMarking {
+  UNREVEALED_CELL_MARKING_UNKNOWN = 0;
+  NO_MARKING = 1; // No markings have been added to the cell.
+  FLAGGED = 2; // The cell has been flagged - it cannot be revealed without being unmarked.
+  QUESTIONED = 3; // The cell has been questioned - this serves only as a visual aid.
+};
+
+message ClearRevealedCell {
+  int32 neighbouring_mines = 1;
+};
+
+message RevealedCell {
+  oneof value {
+    ClearRevealedCell clear = 1; // The Cell did not contain a mine. contains how many of its neighbours are mines.
+    google.protobuf.Empty mine = 2; // The Cell contained a mine. Game over.
+  };
+};
+
+message Cell {
+  int32 row = 1;
+  int32 column = 2;
+
+  oneof state {
+    google.protobuf.Empty unrevealed = 3;
+    google.protobuf.Empty flagged = 4;
+    google.protobuf.Empty questioned = 5;
+    RevealedCell revealed = 6;
+  };
+};
+
+message Board {
+  int32 height = 1;
+  int32 width = 2;
+  int32 mines = 3;
+};
+
+enum GameState {
+  GAME_STATE_UNKNOWN = 0;
+  ONGOING = 1;
+  WON = 2;
+  LOST = 3;
+  RESIGNED = 4;
+};
+
+message Game {
+  string id = 1;
+  GameState state = 2;
+
+  Board board = 3;
+  repeated Cell cells = 4;
+};
+
+enum CellMoveAction {
+  CELL_MOVE_ACTION_UNKNOWN = 0;
+  CLEAR = 1;
+  FLAG = 2;
+  QUESTION = 3;
+  REVEAL = 4;
+};
+
+message CellMove {
+  int32 row = 1;
+  int32 column = 2;
+  CellMoveAction action = 3;
+};
+
+message MakeMoveRequest {
+  string game_id = 1;
+
+  oneof move {
+    google.protobuf.Empty end = 2;
+    CellMove cell = 3;
+  };
+};
+message MakeMoveResponse {
+  Game game = 1;
+};
+
+message StartGameRequest {
+  Board board = 1;
+};
+message StartGameResponse {
+  Game game = 1;
+};
+
+message GetGameRequest  {string game_id = 1;};
+message GetGameResponse {Game game = 1;};
+
+service SweeperService {
+  rpc StartGame (StartGameRequest) returns (StartGameResponse);
+  rpc GetGame (GetGameRequest) returns (GetGameResponse);
+  rpc MakeMove (MakeMoveRequest) returns (MakeMoveResponse);
+};
